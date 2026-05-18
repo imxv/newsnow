@@ -33,6 +33,7 @@ export function RollopGlob(): Plugin {
         await glob(pattern, {
           cwd: currentPath ? path.dirname(currentPath) : root,
           absolute: true,
+          ignore: ["**/*.test.*", "**/*.spec.*"],
         })
       )
         .map(file => normalizePath(file))
