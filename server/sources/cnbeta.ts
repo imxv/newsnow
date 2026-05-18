@@ -1,12 +1,24 @@
-import https from "node:https"
+import process from "node:process"
 import { XMLParser } from "fast-xml-parser"
 import type { NewsItem } from "@shared/types"
 
-function fetchInsecure(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+async function fetchRss(url: string): Promise<string> {
+  if (process.env.CF_PAGES) {
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.text()
+  }
+  // rss.cnbeta.com.tw 不发送完整证书链，Node 原生 fetch/ofetch 会因为 "unable to verify the first certificate" 失败
+  const { default: https } = await import("node:https")
+  return new Promise<string>((resolve, reject) => {
     const req = https.get(url, {
       rejectUnauthorized: false,
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36" },
+      headers: { "User-Agent": UA },
     }, (res) => {
       let data = ""
       res.on("data", (chunk) => {
@@ -34,7 +46,7 @@ export function parseCnbetaRss(xml: string): NewsItem[] {
 
 export default defineSource({
   cnbeta: async () => {
-    const xml = await fetchInsecure("https://rss.cnbeta.com.tw/")
+    const xml = await fetchRss("https://rss.cnbeta.com.tw/")
     return parseCnbetaRss(xml)
   },
 })
