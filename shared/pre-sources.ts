@@ -164,6 +164,14 @@ export const originSources = {
     type: "realtime",
     home: "https://www.ithome.com",
   },
+  "cnbeta": {
+    name: "cnBeta",
+    color: "blue",
+    column: "tech",
+    type: "realtime",
+    interval: Time.Common,
+    home: "https://www.cnbeta.com.tw",
+  },
   "thepaper": {
     name: "澎湃新闻",
     interval: Time.Common,

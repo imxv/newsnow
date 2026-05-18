@@ -9,11 +9,8 @@ interface Res {
   }
 }
 
-export default defineSource(async () => {
-  const timestamp = Date.now()
-  const url = `https://gw-c.nowcoder.com/api/sparta/hot-search/top-hot-pc?size=20&_=${timestamp}&t=`
-  const res: Res = await myFetch(url)
-  return res.data.result
+export function mapNowcoderResult(items: Res["data"]["result"]) {
+  return items
     .map((k) => {
       let url, id
       if (k.type === 74) {
@@ -23,10 +20,14 @@ export default defineSource(async () => {
         url = `https://www.nowcoder.com/discuss/${k.id}`
         id = k.id
       }
-      return {
-        id,
-        title: k.title,
-        url,
-      }
+      return { id, title: k.title, url }
     })
+    .filter(k => k.id !== undefined && k.url !== undefined) as { id: string, title: string, url: string }[]
+}
+
+export default defineSource(async () => {
+  const timestamp = Date.now()
+  const url = `https://gw-c.nowcoder.com/api/sparta/hot-search/top-hot-pc?size=20&_=${timestamp}&t=`
+  const res: Res = await myFetch(url)
+  return mapNowcoderResult(res.data.result)
 })

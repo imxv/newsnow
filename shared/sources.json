@@ -194,6 +194,14 @@
     "color": "red",
     "interval": 600000
   },
+  "cnbeta": {
+    "name": "cnBeta",
+    "type": "realtime",
+    "column": "tech",
+    "home": "https://www.cnbeta.com.tw",
+    "color": "blue",
+    "interval": 1800000
+  },
   "thepaper": {
     "title": "热榜",
     "name": "澎湃新闻",
