@@ -1,35 +1,9 @@
-import process from "node:process"
 import { XMLParser } from "fast-xml-parser"
 import type { NewsItem } from "@shared/types"
 
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-
-async function fetchRss(url: string): Promise<string> {
-  if (process.env.CF_PAGES) {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA },
-      signal: AbortSignal.timeout(10000),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return res.text()
-  }
-  // rss.cnbeta.com.tw 不发送完整证书链，Node 原生 fetch/ofetch 会因为 "unable to verify the first certificate" 失败
-  const { default: https } = await import("node:https")
-  return new Promise<string>((resolve, reject) => {
-    const req = https.get(url, {
-      rejectUnauthorized: false,
-      headers: { "User-Agent": UA },
-    }, (res) => {
-      let data = ""
-      res.on("data", (chunk) => {
-        data += chunk
-      })
-      res.on("end", () => resolve(data))
-    })
-    req.setTimeout(10000, () => req.destroy(new Error("Request timeout")))
-    req.on("error", reject)
-  })
-}
+// rss.cnbeta.com.tw 不发送完整证书链，HTTPS 抓取在 Node 会触发 "unable to verify the first certificate"，
+// 在 Cloudflare 会触发 HTTP 526，且 CF 的 fetch 无法跳过校验。其 HTTP 端点不会跳转，且 RSS 为公开内容，所以走 HTTP。
+const RSS_URL = "http://rss.cnbeta.com.tw/"
 
 export function parseCnbetaRss(xml: string): NewsItem[] {
   const parser = new XMLParser({ ignoreAttributes: false })
@@ -46,7 +20,7 @@ export function parseCnbetaRss(xml: string): NewsItem[] {
 
 export default defineSource({
   cnbeta: async () => {
-    const xml = await fetchRss("https://rss.cnbeta.com.tw/")
+    const xml = await myFetch(RSS_URL, { responseType: "text" }) as string
     return parseCnbetaRss(xml)
   },
 })
