@@ -4,7 +4,7 @@ import type { NewsItem } from "@shared/types"
 
 function fetchInsecure(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(url, {
+    const req = https.get(url, {
       rejectUnauthorized: false,
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36" },
     }, (res) => {
@@ -13,7 +13,9 @@ function fetchInsecure(url: string): Promise<string> {
         data += chunk
       })
       res.on("end", () => resolve(data))
-    }).on("error", reject)
+    })
+    req.setTimeout(10000, () => req.destroy(new Error("Request timeout")))
+    req.on("error", reject)
   })
 }
 
