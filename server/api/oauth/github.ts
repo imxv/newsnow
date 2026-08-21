@@ -68,5 +68,5 @@ export default defineEventHandler(async (event) => {
       name: userInfo.name,
     }),
   })
-  return sendRedirect(event, `/?${params.toString()}`)
+  return sendRedirect(event, `/#${params.toString()}`)
 })

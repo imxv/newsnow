@@ -49,11 +49,19 @@
   </script>
 
   <script>
-    const query = new URLSearchParams(window.location.search)
-    if (query.has("login") && query.has("user") && query.has("jwt")) {
-      localStorage.setItem("user", query.get("user"))
-      localStorage.setItem("jwt", JSON.stringify(query.get("jwt")))
-      window.history.replaceState({}, document.title, window.location.pathname)
+    const loginParams = new URLSearchParams(window.location.hash.slice(1))
+    if (loginParams.has("login") && loginParams.has("user") && loginParams.has("jwt")) {
+      try {
+        localStorage.setItem("user", loginParams.get("user"))
+        localStorage.setItem("jwt", JSON.stringify(loginParams.get("jwt")))
+      }
+      catch {
+        localStorage.removeItem("user")
+        localStorage.removeItem("jwt")
+      }
+      finally {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
+      }
     }
   </script>
   <title>NewsNow+</title>
