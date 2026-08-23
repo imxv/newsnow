@@ -51,7 +51,6 @@ export async function refreshSourceQueries(
           queryKey,
           queryFn: ({ signal }) => options.fetcher(id, { force: true, signal }),
           staleTime: 0,
-          gcTime: Infinity,
           retry: false,
         })
         outcomes[index] = { status: "fulfilled", id }

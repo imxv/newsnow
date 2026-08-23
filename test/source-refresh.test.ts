@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query"
 import type { SourceID, SourceResponse } from "@shared/types"
+import type { LoadSourceOptions } from "@shared/source-refresh"
 import { describe, expect, it, vi } from "vitest"
 import { refreshSourceQueries, sourceQueryKey } from "@shared/source-refresh"
 
@@ -22,7 +23,7 @@ describe("refreshSourceQueries", () => {
     })
     expect(queryClient.getQueryCache().getAll()).toHaveLength(2)
 
-    const fetcher = vi.fn(async (id: SourceID, options = {}) => {
+    const fetcher = vi.fn(async (id: SourceID, options: LoadSourceOptions = {}) => {
       expect(options.force).toBe(true)
       return responseFor(id)
     })
