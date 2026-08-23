@@ -79,6 +79,7 @@ export const originSources = {
   },
   "mktnews": {
     name: "MKTNews",
+    disable: "cf",
     column: "finance",
     home: "https://mktnews.net",
     color: "indigo",
@@ -196,6 +197,7 @@ export const originSources = {
   },
   "pcbeta": {
     name: "远景论坛",
+    disable: "cf",
     color: "blue",
     column: "tech",
     home: "https://bbs.pcbeta.com",
@@ -341,6 +343,7 @@ export const originSources = {
   },
   "kaopu": {
     name: "靠谱新闻",
+    disable: "cf",
     column: "world",
     color: "gray",
     interval: Time.Common,
@@ -475,6 +478,7 @@ export const originSources = {
   },
   "freebuf": {
     name: "Freebuf",
+    disable: "cf",
     column: "china",
     title: "网络安全",
     color: "green",

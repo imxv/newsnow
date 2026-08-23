@@ -47,12 +47,15 @@ export async function refreshSourceQueries(
       try {
         // An initial non-forced request must not hide a later explicit refresh.
         await queryClient.cancelQueries({ queryKey, exact: true })
-        await queryClient.fetchQuery({
+        const response = await queryClient.fetchQuery<SourceResponse>({
           queryKey,
           queryFn: ({ signal }) => options.fetcher(id, { force: true, signal }),
           staleTime: 0,
           retry: false,
         })
+        if (response.status === "cache") {
+          throw new Error(`Source ${id} returned cached data`)
+        }
         outcomes[index] = { status: "fulfilled", id }
       } catch (error) {
         outcomes[index] = { status: "rejected", id, error }

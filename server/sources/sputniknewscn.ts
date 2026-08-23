@@ -1,8 +1,7 @@
 import * as cheerio from "cheerio"
 import type { NewsItem } from "@shared/types"
-import { proxySource } from "#/utils/source"
 
-const source = defineSource(async () => {
+export default defineSource(async () => {
   const response: any = await myFetch("https://sputniknews.cn/services/widget/lenta/")
   const $ = cheerio.load(response)
   const $items = $(".lenta__item")
@@ -24,7 +23,6 @@ const source = defineSource(async () => {
       })
     }
   })
+  if (!news.length) throw new Error("Cannot fetch Sputnik news")
   return news
 })
-
-export default proxySource("https://newsnow-omega-one.vercel.app/api/s?id=sputniknewscn&latest=", source)
