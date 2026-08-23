@@ -25,7 +25,7 @@ function Github() {
 
 function Refresh() {
   const currentSources = useAtomValue(currentSourcesAtom)
-  const { refresh } = useRefetch()
+  const { refresh, isRefreshing } = useRefetch()
   const refreshAll = useCallback(() => refresh(...currentSources), [refresh, currentSources])
 
   const isFetching = useIsFetching({
@@ -39,8 +39,9 @@ function Refresh() {
     <button
       type="button"
       title="Refresh"
-      className={$("i-ph:arrow-counter-clockwise-duotone btn", isFetching && "animate-spin i-ph:circle-dashed-duotone")}
+      className={$("i-ph:arrow-counter-clockwise-duotone btn", (isRefreshing || isFetching) && "animate-spin i-ph:circle-dashed-duotone")}
       onClick={refreshAll}
+      disabled={isRefreshing}
     />
   )
 }
