@@ -75,4 +75,20 @@ describe("refreshSourceQueries", () => {
 
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
+
+  it("reports a cache fallback as a failed forced refresh", async () => {
+    const queryClient = new QueryClient()
+    const fetcher = vi.fn(async (id: SourceID): Promise<SourceResponse> => ({
+      ...responseFor(id),
+      status: "cache",
+    }))
+
+    const result = await refreshSourceQueries(queryClient, ["zhihu"], { fetcher })
+
+    expect(result.succeeded).toEqual([])
+    expect(result.failed).toHaveLength(1)
+    expect(result.failed[0]).toMatchObject({ id: "zhihu" })
+    expect(result.failed[0].error).toEqual(new Error("Source zhihu returned cached data"))
+    expect(queryClient.getQueryData<SourceResponse>(sourceQueryKey("zhihu"))?.status).toBe("cache")
+  })
 })

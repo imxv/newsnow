@@ -74,6 +74,7 @@
   "mktnews": {
     "redirect": "mktnews-flash",
     "name": "MKTNews",
+    "disable": "cf",
     "column": "finance",
     "home": "https://mktnews.net",
     "color": "indigo",
@@ -82,6 +83,7 @@
   },
   "mktnews-flash": {
     "name": "MKTNews",
+    "disable": "cf",
     "column": "finance",
     "home": "https://mktnews.net",
     "color": "indigo",
@@ -229,6 +231,7 @@
     "redirect": "pcbeta-windows11",
     "name": "远景论坛",
     "type": "realtime",
+    "disable": "cf",
     "column": "tech",
     "home": "https://bbs.pcbeta.com",
     "color": "blue",
@@ -238,6 +241,7 @@
   "pcbeta-windows11": {
     "name": "远景论坛",
     "type": "realtime",
+    "disable": "cf",
     "column": "tech",
     "home": "https://bbs.pcbeta.com",
     "color": "blue",
@@ -427,6 +431,7 @@
   },
   "kaopu": {
     "name": "靠谱新闻",
+    "disable": "cf",
     "desc": "不一定靠谱，多看多思考",
     "column": "world",
     "home": "https://kaopu.news/",
@@ -549,6 +554,7 @@
     "title": "网络安全",
     "name": "Freebuf",
     "type": "hottest",
+    "disable": "cf",
     "column": "china",
     "home": "https://www.freebuf.com/",
     "color": "green",

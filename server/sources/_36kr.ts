@@ -1,32 +1,93 @@
-import type { NewsItem } from "@shared/types"
-import { load } from "cheerio"
+interface QuickItem {
+  itemId: number
+  templateMaterial: {
+    widgetTitle: string
+    publishTime: number
+  }
+}
+
+function parseQuickItems(content: string): QuickItem[] {
+  const marker = `"itemList":`
+  const markerIndex = content.indexOf(marker)
+  const arrayStart = markerIndex === -1 ? -1 : content.indexOf("[", markerIndex + marker.length)
+  let arrayEnd = -1
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let index = arrayStart; index >= 0 && index < content.length; index++) {
+    const character = content[index]
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (character === "\\") {
+        escaped = true
+      } else if (character === `"`) {
+        inString = false
+      }
+      continue
+    }
+    if (character === `"`) {
+      inString = true
+    } else if (character === "[") {
+      depth++
+    } else if (character === "]" && --depth === 0) {
+      arrayEnd = index + 1
+      break
+    }
+  }
+
+  const embeddedItems = arrayStart >= 0 && arrayEnd > arrayStart
+    ? content.slice(arrayStart, arrayEnd)
+    : undefined
+  if (embeddedItems) {
+    try {
+      return JSON.parse(embeddedItems)
+    } catch {
+      // Fall through to the text proxy format.
+    }
+  }
+
+  const items: QuickItem[] = []
+  const linkPattern = /^\[([^\]\n]+)\]\(https:\/\/www\.36kr\.com\/newsflashes\/(\d+)\)$/gm
+  for (const match of content.matchAll(linkPattern)) {
+    const followingText = content.slice((match.index ?? 0) + match[0].length)
+    const relativeDate = followingText.split(/\r?\n/).map(line => line.trim()).find(Boolean)
+    if (!relativeDate) continue
+    items.push({
+      itemId: Number(match[2]),
+      templateMaterial: {
+        widgetTitle: match[1],
+        publishTime: Number(parseRelativeDate(relativeDate, "Asia/Shanghai").valueOf()),
+      },
+    })
+  }
+  return items
+}
 
 const quick = defineSource(async () => {
-  const baseURL = "https://www.36kr.com"
-  const url = `${baseURL}/newsflashes`
-  const response = await myFetch(url) as any
-  const $ = load(response)
-  const news: NewsItem[] = []
-  const $items = $(".newsflash-item")
-  $items.each((_, el) => {
-    const $el = $(el)
-    const $a = $el.find("a.item-title")
-    const url = $a.attr("href")
-    const title = $a.text()
-    const relativeDate = $el.find(".time").text()
-    if (url && title && relativeDate) {
-      news.push({
-        url: `${baseURL}${url}`,
-        title,
-        id: url,
-        extra: {
-          date: parseRelativeDate(relativeDate, "Asia/Shanghai").valueOf(),
-        },
-      })
-    }
-  })
+  const sourceURL = "https://www.36kr.com/newsflashes"
+  let content = ""
+  try {
+    content = await myFetch<string>(sourceURL)
+  } catch {
+    // Some edge runtimes cannot connect to 36kr directly.
+  }
 
-  return news
+  let items = parseQuickItems(content)
+  if (!items.length) {
+    content = await myFetch<string>(`https://r.jina.ai/${sourceURL}`)
+    items = parseQuickItems(content)
+  }
+  if (!items.length) throw new Error("Cannot fetch 36kr quick news")
+
+  return items.map(item => ({
+    id: item.itemId,
+    title: item.templateMaterial.widgetTitle,
+    url: `https://36kr.com/newsflashes/${item.itemId}`,
+    extra: {
+      date: item.templateMaterial.publishTime,
+    },
+  }))
 })
 
 interface HotRankItem {

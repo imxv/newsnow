@@ -57,6 +57,7 @@ export default defineEventHandler(async (event): Promise<SourceResponse> => {
 
     try {
       const newData = (await getters[id]()).slice(0, 30)
+      if (!newData.length) throw new Error(`Source ${id} returned no items`)
       if (cacheTable && newData.length) {
         if (event.context.waitUntil) event.context.waitUntil(cacheTable.set(id, newData))
         else await cacheTable.set(id, newData)
