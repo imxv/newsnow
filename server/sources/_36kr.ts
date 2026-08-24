@@ -1,93 +1,13 @@
-interface QuickItem {
-  itemId: number
-  templateMaterial: {
-    widgetTitle: string
-    publishTime: number
-  }
-}
-
-function parseQuickItems(content: string): QuickItem[] {
-  const marker = `"itemList":`
-  const markerIndex = content.indexOf(marker)
-  const arrayStart = markerIndex === -1 ? -1 : content.indexOf("[", markerIndex + marker.length)
-  let arrayEnd = -1
-  let depth = 0
-  let inString = false
-  let escaped = false
-  for (let index = arrayStart; index >= 0 && index < content.length; index++) {
-    const character = content[index]
-    if (inString) {
-      if (escaped) {
-        escaped = false
-      } else if (character === "\\") {
-        escaped = true
-      } else if (character === `"`) {
-        inString = false
-      }
-      continue
-    }
-    if (character === `"`) {
-      inString = true
-    } else if (character === "[") {
-      depth++
-    } else if (character === "]" && --depth === 0) {
-      arrayEnd = index + 1
-      break
-    }
-  }
-
-  const embeddedItems = arrayStart >= 0 && arrayEnd > arrayStart
-    ? content.slice(arrayStart, arrayEnd)
-    : undefined
-  if (embeddedItems) {
-    try {
-      return JSON.parse(embeddedItems)
-    } catch {
-      // Fall through to the text proxy format.
-    }
-  }
-
-  const items: QuickItem[] = []
-  const linkPattern = /^\[([^\]\n]+)\]\(https:\/\/www\.36kr\.com\/newsflashes\/(\d+)\)$/gm
-  for (const match of content.matchAll(linkPattern)) {
-    const followingText = content.slice((match.index ?? 0) + match[0].length)
-    const relativeDate = followingText.split(/\r?\n/).map(line => line.trim()).find(Boolean)
-    if (!relativeDate) continue
-    items.push({
-      itemId: Number(match[2]),
-      templateMaterial: {
-        widgetTitle: match[1],
-        publishTime: Number(parseRelativeDate(relativeDate, "Asia/Shanghai").valueOf()),
-      },
-    })
-  }
-  return items
-}
+const rssHubQuick = defineRSSHubSource("/36kr/newsflashes")
+const officialQuick = defineRSSSource("https://www.36kr.com/feed-newsflash")
 
 const quick = defineSource(async () => {
-  const sourceURL = "https://www.36kr.com/newsflashes"
-  let content = ""
   try {
-    content = await myFetch<string>(sourceURL)
+    return await rssHubQuick()
   } catch {
-    // Some edge runtimes cannot connect to 36kr directly.
+    // Fall back to the official feed when all shared RSS mirrors fail.
   }
-
-  let items = parseQuickItems(content)
-  if (!items.length) {
-    content = await myFetch<string>(`https://r.jina.ai/${sourceURL}`)
-    items = parseQuickItems(content)
-  }
-  if (!items.length) throw new Error("Cannot fetch 36kr quick news")
-
-  return items.map(item => ({
-    id: item.itemId,
-    title: item.templateMaterial.widgetTitle,
-    url: `https://36kr.com/newsflashes/${item.itemId}`,
-    extra: {
-      date: item.templateMaterial.publishTime,
-    },
-  }))
+  return officialQuick()
 })
 
 interface HotRankItem {
