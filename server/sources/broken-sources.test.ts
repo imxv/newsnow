@@ -40,9 +40,28 @@ describe("repaired news sources", () => {
     )
   })
 
-  it("falls back to the official 36kr feed when the shared RSS service fails", async () => {
+  it("retries the shared RSS service after a transient failure", async () => {
     myFetchMock
       .mockRejectedValueOnce(new Error("network lost"))
+      .mockResolvedValueOnce({
+        items: [{
+          id: "https://www.36kr.com/newsflashes/456",
+          url: "https://www.36kr.com/newsflashes/456",
+          title: "36kr retry",
+          date_published: "2026-08-24T02:10:00.000Z",
+        }],
+      })
+
+    const result = await kr36Sources["36kr-quick"]!()
+
+    expect(result[0]?.title).toBe("36kr retry")
+    expect(myFetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("falls back to the official 36kr feed when both shared RSS attempts fail", async () => {
+    myFetchMock
+      .mockRejectedValueOnce(new Error("network lost"))
+      .mockRejectedValueOnce(new Error("network still lost"))
       .mockResolvedValueOnce(`<?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0"><channel><title>36氪</title><item>
           <title>36kr fallback</title>
@@ -58,11 +77,12 @@ describe("repaired news sources", () => {
       url: "https://36kr.com/newsflashes/456?f=rss",
       pubDate: "2026-08-24 10:00:00 +0800",
     })
-    expect(myFetchMock).toHaveBeenNthCalledWith(2, "https://www.36kr.com/feed-newsflash")
+    expect(myFetchMock).toHaveBeenNthCalledWith(3, "https://www.36kr.com/feed-newsflash")
   })
 
   it("falls back to the official 36kr feed when the shared RSS service is empty", async () => {
     myFetchMock
+      .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce(`<?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0"><channel><title>36氪</title><item>
@@ -74,7 +94,7 @@ describe("repaired news sources", () => {
     const result = await kr36Sources["36kr-quick"]!()
 
     expect(result[0]?.url).toBe("https://36kr.com/newsflashes/789?f=rss")
-    expect(myFetchMock).toHaveBeenCalledTimes(2)
+    expect(myFetchMock).toHaveBeenCalledTimes(3)
   })
 
   it("fetches CLS telegraph data from the current cache endpoint", async () => {

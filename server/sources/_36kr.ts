@@ -1,12 +1,15 @@
 const rssHubQuick = defineRSSHubSource("/36kr/newsflashes")
 const officialQuick = defineRSSSource("https://www.36kr.com/feed-newsflash")
+const RSS_HUB_ATTEMPTS = 2
 
 const quick = defineSource(async () => {
-  try {
-    const items = await rssHubQuick()
-    if (items.length) return items
-  } catch {
-    // Fall back to the official feed when the shared RSS service is unavailable.
+  for (let attempt = 0; attempt < RSS_HUB_ATTEMPTS; attempt++) {
+    try {
+      const items = await rssHubQuick()
+      if (items.length) return items
+    } catch {
+      // Retry transient shared RSS failures before using the official feed.
+    }
   }
   return officialQuick()
 })
