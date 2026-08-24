@@ -16,38 +16,65 @@ describe("repaired news sources", () => {
     myFetchMock.mockReset()
   })
 
-  it("reads 36kr quick news from the embedded page data", async () => {
-    myFetchMock.mockResolvedValue(`<script>{"itemList":[{
-      "itemId":123,
-      "templateMaterial":{"widgetTitle":"36kr title","publishTime":1787508000000}
-    }]}</script>`)
+  it("fetches 36kr quick news from the shared RSS service", async () => {
+    myFetchMock.mockResolvedValue({
+      items: [{
+        id: "https://www.36kr.com/newsflashes/123",
+        url: "https://www.36kr.com/newsflashes/123",
+        title: "36kr title",
+        date_published: "2026-08-24T02:00:00.000Z",
+      }],
+    })
 
     const result = await kr36Sources["36kr-quick"]!()
 
     expect(result).toEqual([{
-      id: 123,
+      id: "https://www.36kr.com/newsflashes/123",
       title: "36kr title",
-      url: "https://36kr.com/newsflashes/123",
-      extra: { date: 1787508000000 },
+      url: "https://www.36kr.com/newsflashes/123",
+      pubDate: "2026-08-24T02:00:00.000Z",
     }])
     expect(myFetchMock).toHaveBeenCalledOnce()
+    expect(String(myFetchMock.mock.calls[0][0])).toBe(
+      "https://rsshub.rssforever.com/36kr/newsflashes?format=json&sorted=true",
+    )
   })
 
-  it("falls back to the text proxy when 36kr cannot be reached directly", async () => {
+  it("falls back to the official 36kr feed when the shared RSS service fails", async () => {
     myFetchMock
       .mockRejectedValueOnce(new Error("network lost"))
-      .mockResolvedValueOnce(`[36kr fallback](https://www.36kr.com/newsflashes/456)
-
-8小时前`)
+      .mockResolvedValueOnce(`<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0"><channel><title>36氪</title><item>
+          <title>36kr fallback</title>
+          <link>https://36kr.com/newsflashes/456?f=rss</link>
+          <pubDate>2026-08-24 10:00:00 +0800</pubDate>
+        </item></channel></rss>`)
 
     const result = await kr36Sources["36kr-quick"]!()
 
     expect(result[0]).toMatchObject({
-      id: 456,
+      id: "https://36kr.com/newsflashes/456?f=rss",
       title: "36kr fallback",
-      url: "https://36kr.com/newsflashes/456",
+      url: "https://36kr.com/newsflashes/456?f=rss",
+      pubDate: "2026-08-24 10:00:00 +0800",
     })
-    expect(myFetchMock).toHaveBeenNthCalledWith(2, "https://r.jina.ai/https://www.36kr.com/newsflashes")
+    expect(myFetchMock).toHaveBeenNthCalledWith(2, "https://www.36kr.com/feed-newsflash")
+  })
+
+  it("falls back to the official 36kr feed when the shared RSS service is empty", async () => {
+    myFetchMock
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce(`<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0"><channel><title>36氪</title><item>
+          <title>36kr fallback</title>
+          <link>https://36kr.com/newsflashes/789?f=rss</link>
+          <pubDate>2026-08-24 10:10:00 +0800</pubDate>
+        </item></channel></rss>`)
+
+    const result = await kr36Sources["36kr-quick"]!()
+
+    expect(result[0]?.url).toBe("https://36kr.com/newsflashes/789?f=rss")
+    expect(myFetchMock).toHaveBeenCalledTimes(2)
   })
 
   it("fetches CLS telegraph data from the current cache endpoint", async () => {
