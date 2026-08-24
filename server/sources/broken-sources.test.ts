@@ -40,7 +40,7 @@ describe("repaired news sources", () => {
     )
   })
 
-  it("retries the shared RSS service after a transient failure", async () => {
+  it("tries a second RSSHub mirror after the primary mirror fails", async () => {
     myFetchMock
       .mockRejectedValueOnce(new Error("network lost"))
       .mockResolvedValueOnce({
@@ -56,9 +56,12 @@ describe("repaired news sources", () => {
 
     expect(result[0]?.title).toBe("36kr retry")
     expect(myFetchMock).toHaveBeenCalledTimes(2)
+    expect(String(myFetchMock.mock.calls[1][0])).toBe(
+      "https://rsshub.liumingye.cn/36kr/newsflashes?format=json&sorted=true",
+    )
   })
 
-  it("falls back to the official 36kr feed when both shared RSS attempts fail", async () => {
+  it("falls back to the official 36kr feed when both RSSHub mirrors fail", async () => {
     myFetchMock
       .mockRejectedValueOnce(new Error("network lost"))
       .mockRejectedValueOnce(new Error("network still lost"))
@@ -80,7 +83,7 @@ describe("repaired news sources", () => {
     expect(myFetchMock).toHaveBeenNthCalledWith(3, "https://www.36kr.com/feed-newsflash")
   })
 
-  it("falls back to the official 36kr feed when the shared RSS service is empty", async () => {
+  it("falls back to the official 36kr feed when both RSSHub mirrors are empty", async () => {
     myFetchMock
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ items: [] })

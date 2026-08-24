@@ -25,24 +25,30 @@ export function defineRSSSource(url: string, option?: SourceOption): SourceGette
 
 export function defineRSSHubSource(route: string, RSSHubOptions?: RSSHubOption, sourceOption?: SourceOption): SourceGetter {
   return async () => {
-    // "https://rsshub.pseudoyu.com"
-    const RSSHubBase = "https://rsshub.rssforever.com"
-    const url = new URL(route, RSSHubBase)
-    url.searchParams.set("format", "json")
-    RSSHubOptions = defu<RSSHubOption, RSSHubOption[]>(RSSHubOptions, {
+    const options = defu<RSSHubOption, RSSHubOption[]>(RSSHubOptions, {
       sorted: true,
     })
-
-    Object.entries(RSSHubOptions).forEach(([key, value]) => {
-      url.searchParams.set(key, value.toString())
-    })
-    const data: RSSHubResponse = await myFetch(url)
-    return data.items.map(item => ({
-      title: item.title,
-      url: item.url,
-      id: item.id ?? item.url,
-      pubDate: !sourceOption?.hiddenDate ? item.date_published : undefined,
-    }))
+    let lastError: unknown
+    for (const baseURL of ["https://rsshub.rssforever.com", "https://rsshub.liumingye.cn"]) {
+      try {
+        const url = new URL(route, baseURL)
+        url.searchParams.set("format", "json")
+        Object.entries(options).forEach(([key, value]) => {
+          url.searchParams.set(key, value.toString())
+        })
+        const data: RSSHubResponse = await myFetch(url)
+        if (!data.items?.length) throw new Error(`RSSHub ${baseURL} returned no items`)
+        return data.items.map(item => ({
+          title: item.title,
+          url: item.url,
+          id: item.id ?? item.url,
+          pubDate: !sourceOption?.hiddenDate ? item.date_published : undefined,
+        }))
+      } catch (error) {
+        lastError = error
+      }
+    }
+    throw lastError ?? new Error("Cannot fetch RSSHub data")
   }
 }
 
